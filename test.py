@@ -34,6 +34,49 @@ def make_conv_model():
         prediction = tf.argmax(output, axis=-1, name='prediction')
         return x, prediction, output
 
+def make_inception_module(input, split_sizes, filters, skip_layer=None):
+    assert(len(filters) == 4)
+    assert(len(split_sizes) == 2)
+    conv_1_1 = tf.layers.conv2d(input, filters[0], kernel_size=(1, 1), padding='same',
+                                activation=tf.nn.relu)
+
+    conv_3_1_1 = tf.layers.conv2d(input, split_sizes[0], kernel_size=(1, 1), padding='same',
+                                  activation=tf.nn.relu)
+    conv_3_3 = tf.layers.conv2d(conv_3_1_1, filters[1], kernel_size=(3, 3), padding='same',
+                                activation=tf.nn.relu)
+
+    conv_5_1_1 = tf.layers.conv2d(input, split_sizes[1], kernel_size=(1, 1), padding='same',
+                                  activation=tf.nn.relu)
+    conv_5_5 = tf.layers.conv2d(conv_5_1_1, filters[2], kernel_size=(5, 5), padding='same',
+                                activation=tf.nn.relu)
+
+    max_pool = tf.layers.max_pooling2d(input, pool_size=(2, 2), strides=1, padding='same')
+    conv_pool = tf.layers.conv2d(max_pool, filters[3], kernel_size=(1, 1), padding='same',
+                                 activation=tf.nn.relu)
+
+    return tf.concat([conv_1_1, conv_3_3, conv_5_5, conv_pool], axis=-1)
+
+
+def make_resnet_model():
+    with tf.variable_scope('conv_model'):
+        x = tf.placeholder(dtype=tf.float32, shape=(None, 784), name='input')
+        x_ = tf.reshape(x, (-1, 28, 28, 1))
+
+        conv_1 = make_inception_module(x_, split_sizes=[2, 2], filters=[8, 8, 8, 8])
+        pool_1 = tf.layers.max_pooling2d(conv_1, pool_size=(2, 2), strides=2)
+        conv_2 = make_inception_module(pool_1, split_sizes=[8, 8], filters=[4, 4, 4, 4])
+        pool_2 = tf.layers.max_pooling2d(conv_2, pool_size=(2, 2), strides=2)
+        conv_3 = make_inception_module(pool_2, split_sizes=[4, 4], filters=[2, 2, 2, 2])
+        dense_1 = tf.layers.flatten(conv_3)
+        dense_dropout = tf.layers.dropout(dense_1, 0.4)
+        dense_out = tf.layers.dense(dense_dropout, 10)
+
+        for layer in [conv_1, conv_2, conv_3, dense_1]:
+            print(layer.get_shape().as_list())
+
+        prediction = tf.argmax(dense_out, axis=-1)
+        return x, prediction, dense_out
+
 if __name__ == '__main__':
     from tensorflow.examples.tutorials.mnist import input_data
 
@@ -44,13 +87,13 @@ if __name__ == '__main__':
     n_examples = mnist.train.images.shape[0]
     n_iter = n_examples // batch_size
 
-    x, prediction, output = make_conv_model()
+    x, prediction, output = make_resnet_model()
     y = tf.placeholder(dtype=tf.float32)
     cost = tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=output)
 
     optimiser = tf.train.AdamOptimizer().minimize(cost)
 
-    with tf.Session() as sess:
+    """with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
         for i in range(int(n_epochs)):
@@ -63,4 +106,4 @@ if __name__ == '__main__':
 
         test_x, test_y = mnist.test.images, mnist.test.labels
         test_pred = sess.run(prediction, feed_dict={x:test_x})
-        print(np.mean(test_pred == np.argmax(test_y, axis=-1)))
+        print(np.mean(test_pred == np.argmax(test_y, axis=-1)))"""
