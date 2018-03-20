@@ -106,4 +106,4 @@ if __name__ == '__main__':
 
         test_x, test_y = mnist.test.images, mnist.test.labels
         test_pred = sess.run(prediction, feed_dict={x:test_x})
-        print(np.mean(test_pred == np.argmax(test_y, axis=-1)))
+        print(np.mean(test_pred == np.argmax(test_y, axis=-1)) * 100.)
