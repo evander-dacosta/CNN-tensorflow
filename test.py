@@ -64,11 +64,14 @@ def make_resnet_model():
 
         conv_1 = make_inception_module(x_, split_sizes=[2, 2], filters=[8, 8, 8, 8])
         pool_1 = tf.layers.max_pooling2d(conv_1, pool_size=(2, 2), strides=2)
-        conv_2 = make_inception_module(pool_1, split_sizes=[8, 8], filters=[4, 4, 4, 4])
+        bn_1 = tf.layers.batch_normalization(pool_1)
+        conv_2 = make_inception_module(bn_1, split_sizes=[8, 8], filters=[4, 4, 4, 4])
         pool_2 = tf.layers.max_pooling2d(conv_2, pool_size=(2, 2), strides=2)
-        conv_3 = make_inception_module(pool_2, split_sizes=[4, 4], filters=[2, 2, 2, 2])
+        bn_2 = tf.layers.batch_normalization(pool_2)
+        conv_3 = make_inception_module(bn_2, split_sizes=[4, 4], filters=[2, 2, 2, 2])
         dense_1 = tf.layers.flatten(conv_3)
-        dense_dropout = tf.layers.dropout(dense_1, 0.4)
+        bn_3 = tf.layers.batch_normalization(dense_1)
+        dense_dropout = tf.layers.dropout(bn_3, 0.4)
         dense_out = tf.layers.dense(dense_dropout, 10)
 
         for layer in [conv_1, conv_2, conv_3, dense_1]:
