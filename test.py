@@ -19,14 +19,18 @@ def make_conv_model():
         x_ = tf.reshape(x, (-1, 28, 28, 1))
         conv_1 = tf.layers.conv2d(x_, 32, kernel_size=(5, 5), padding='same',
                                         activation=tf.nn.relu)
-        pool_1 = tf.layers.max_pooling2d(conv_1, pool_size=(2, 2), strides=2)
+        bn_1 = tf.layers.batch_normalization(conv_1)
+        pool_1 = tf.layers.max_pooling2d(bn_1, pool_size=(2, 2), strides=2)
         conv_2 = tf.layers.conv2d(pool_1, 64, kernel_size=(5, 5), activation=tf.nn.relu)
-        pool_2 = tf.layers.max_pooling2d(conv_2, pool_size=(2, 2), strides=2)
+        bn_2 = tf.layers.batch_normalization(conv_2)
+        pool_2 = tf.layers.max_pooling2d(bn_2, pool_size=(2, 2), strides=2)
 
         flatten = tf.layers.flatten(pool_2)
+
         dense_1 = tf.layers.dense(flatten, 1024, activation=tf.nn.relu)
         dropout = tf.layers.dropout(dense_1, rate=0.4)
-        output = tf.layers.dense(dropout, 10, name='output')
+        bn_4 = tf.layers.batch_normalization(dropout)
+        output = tf.layers.dense(bn_4, 10, name='output')
         prediction = tf.argmax(output, axis=-1, name='prediction')
         return x, prediction, output
 
@@ -35,7 +39,7 @@ if __name__ == '__main__':
 
     mnist = input_data.read_data_sets('data', one_hot=True)
 
-    n_epochs = 20
+    n_epochs = 10
     batch_size = 64
     n_examples = mnist.train.images.shape[0]
     n_iter = n_examples // batch_size
